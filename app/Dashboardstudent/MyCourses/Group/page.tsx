@@ -105,22 +105,28 @@ export default function MyCoursesPage() {
 
       {joined ? (
          <div className="mt-2 flex flex-col gap-4">
-          {classes.map((c) => (
+                  {classes.map((c) => (
             <Link
               key={c.id}
               href={`/Dashboardstudent/MyCourses/Section/${c.id}`}
-              className="block w-full max-w-[500px] rounded-xl border border-[#E3E6F0] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group relative block w-full max-w-[500px] overflow-hidden rounded-xl border border-[#E3E6F0] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <h2 className="text-lg font-bold text-[#14213F]">{c.course_title}</h2>
-              <div className="mt-3 flex flex-col gap-3 text-sm text-gray-600">
-                <div className="flex items-center gap-3">
-                  <AlarmClock size={18} /> {c.term}
-                </div>
-                <div className="flex items-center gap-3">
-                  <Users size={18} /> {c.group_name}
-                </div>
-                <div className="flex items-center gap-3">
-                  <BookUser size={18} /> {c.teacher_name}
+              {/* วงกลมสีอ่อนขยายจากมุมขวาบน */}
+              <span className="absolute right-0 top-0 h-0 w-0 -translate-y-1/2 translate-x-1/2 rounded-full bg-[#F1F3FD] transition-all duration-500 ease-out group-hover:h-[700px] group-hover:w-[1200px]" />
+
+              {/* เนื้อหาต้องอยู่เหนือวงกลม */}
+              <div className="relative z-10">
+                <h2 className="text-lg font-bold text-[#14213F]">{c.course_title}</h2>
+                <div className="mt-3 flex flex-col gap-3 text-sm text-gray-600">
+                  <div className="flex items-center gap-3">
+                    <AlarmClock size={18} /> {c.term}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Users size={18} /> {c.group_name}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <BookUser size={18} /> {c.teacher_name}
+                  </div>
                 </div>
               </div>
             </Link>

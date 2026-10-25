@@ -41,8 +41,9 @@ export default function JoinClassPage() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/classes/join", {
+      const res = await fetch("http://localhost:8000/classes/join", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, join_code: joined }),
       });
@@ -80,12 +81,15 @@ export default function JoinClassPage() {
           ))}
         </div>
         {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
-        <button
+               <button
           type="button"
           onClick={handleJoin}
-          className="mt-10 w-full rounded-lg bg-[#2563EB] py-2 text-sm font-bold text-white transition hover:bg-[#1D4ED8] active:scale-[0.98]"
+          className="group relative mt-10 w-full overflow-hidden rounded-lg bg-[#2563EB] py-2 text-sm font-bold text-white transition active:scale-[0.98]"
         >
-          Join Class
+          {/* วงกลมที่ขยายจากมุมขวาบน */}
+          <span className="absolute right-0 top-0 h-0 w-0 -translate-y-1/2 translate-x-1/2 rounded-full bg-[#0B3FA6] transition-all duration-500 ease-out group-hover:h-[340px] group-hover:w-[540px]" />
+          {/* ข้อความต้องอยู่เหนือวงกลม */}
+          <span className="relative z-10">Join Class</span>
         </button>
       </div>
     </div>

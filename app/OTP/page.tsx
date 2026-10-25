@@ -86,6 +86,7 @@ export default function OtpPage() {
     try {
       const res = await fetch(`${API}/auth/otp/verify`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pending_token: pending.token, code }),
       });
@@ -94,7 +95,7 @@ export default function OtpPage() {
       if (data.success) {
         localStorage.setItem("user", JSON.stringify(data.user));
         sessionStorage.removeItem("otpPending");
-        router.push("/");
+        router.push("/Dashboardstudent/MyCourses");
       } else {
         setError(data.error || "ยืนยันไม่สำเร็จ");
         setDigits(Array(LENGTH).fill(""));
@@ -112,6 +113,7 @@ export default function OtpPage() {
     try {
       const res = await fetch(`${API}/auth/otp/resend`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pending_token: pending.token }),
       });
