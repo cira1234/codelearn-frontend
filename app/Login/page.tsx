@@ -44,9 +44,23 @@ export default function LoginPage() {
                                 />
                             </div>
 
+                            
 
 
-                           <div className="flex w-[420px] flex-col gap-6 mt-10">
+
+                           <div className="mt-6 flex w-full max-w-[420px] flex-col gap-6">
+  <div className="text-center">
+    <h1 className="text-xl font-bold text-gray-900">
+      ยินดีต้อนรับเข้าสู่ระบบบริการนักศึกษา
+    </h1>
+    <p className="mt-1 text-sm text-gray-500">
+      เข้าสู่ระบบด้วยรหัสนักศึกษาและรหัสผ่านของคุณ
+      เพื่อเข้าถึงข้อมูลการเรียนของคุณและฟีเจอร์อื่น ๆ ของระบบบริการนักศึกษา
+    </p>
+  </div>
+</div>
+
+                           <div className="flex w-[420px] flex-col gap-6 mt-0">
                             {/* ปุ่ม Google */}
                           <div className="flex w-[420px] flex-col gap-6 mt-10">
                             {/* ปุ่ม Google */}
