@@ -95,7 +95,7 @@ export default function OtpPage() {
       if (data.success) {
         localStorage.setItem("user", JSON.stringify(data.user));
         sessionStorage.removeItem("otpPending");
-        router.push("/Dashboardstudent/MyCourses");
+        router.push("/FormNameafterOTP");
       } else {
         setError(data.error || "ยืนยันไม่สำเร็จ");
         setDigits(Array(LENGTH).fill(""));

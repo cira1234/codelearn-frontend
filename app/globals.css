@@ -89,3 +89,63 @@ body {
 .google-btn:hover .google-icon {
   animation: iconBounce 0.5s ease-out;
 }
+
+
+
+html{scroll-behavior:smooth}body{margin:0;background:#040a1c}
+.hero-start {
+  position: absolute;
+  left: var(--start-x);
+  top: var(--start-y);
+  z-index: 4;
+  display: block;
+  width: var(--start-w);
+  line-height: 0;
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.hero-start__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hero-start:hover {
+  transform: translate(-50%, -50%) translateY(-3px) scale(1.03);
+  filter: drop-shadow(0 8px 22px rgba(56, 221, 255, 0.7)) brightness(1.08);
+}
+
+.hero-start:active {
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+.hero-start:focus-visible {
+  outline: 2px solid var(--cyan, #38ddff);
+  outline-offset: 6px;
+}
+.hero-start {
+  --start-x: 13.6%;
+  --start-y: 90.2%;
+  --start-w: 18.5%;
+
+  position: absolute;
+  left: var(--start-x);
+  top: var(--start-y);
+  z-index: 4;
+  display: block;
+  width: var(--start-w);
+  line-height: 0;
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 850px) {
+  .hero-start {
+    min-width: 150px;
+  }
+  .hero-banner .brand-links a:not(.nav-cta) {
+    display: none;
+  }
+}

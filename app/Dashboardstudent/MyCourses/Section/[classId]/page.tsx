@@ -8,7 +8,7 @@ import { FileText, Clock } from "lucide-react";
 type Section = {
   id: number;
   name: string;
-  sobday: string | null;
+  day_sob: string | null;
   start_sob_time: string | null;
   end_sob_time: string | null;
 };
@@ -59,7 +59,7 @@ function SectionList() {
             <h2 className="text-lg font-bold text-[#14213F]">เนื้อหา{s.name}</h2>
             <div className="mt-4 flex flex-col gap-3 text-sm text-gray-600">
               <div className="flex items-center gap-3">
-                <FileText size={18} /> วันที่สอบ {thaiDate(s.sobday)}
+                <FileText size={18} /> วันที่สอบ {thaiDate(s.day_sob)}
               </div>
               <div className="flex items-center gap-3">
                 <Clock size={18} /> เวลาที่สอบ {s.start_sob_time ?? "-"}-{s.end_sob_time ?? "-"}

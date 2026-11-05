@@ -29,7 +29,7 @@ const menus = [
   { href: "/DashboardTeacherLead/ManageQuiz", label: "จัดการ Quiz", icon: ClipboardList },
   { href: "/DashboardTeacherLead/ManagePark", label: "จัดการภาคการศึกษา", icon: CalendarDays },
   { href: "/DashboardTeacherLead/ViewPDF", label: "ดูรายละเอียดเอกสาร", icon: BookOpen },
-  { href: "/DashboardTeacherLead/Settings", label: "Settings", icon: Settings },
+  // { href: "/DashboardTeacherLead/Settings", label: "Settings", icon: Settings },
 ];
 
 export default function SidebarTeacherLead() {

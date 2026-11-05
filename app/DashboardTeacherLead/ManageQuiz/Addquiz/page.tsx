@@ -1,0 +1,488 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Check, CloudUpload, FileText, FolderOpen, ImagePlus, Plus, X } from "lucide-react";
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+type ChapterOpt = {
+  id: number;
+  chapter_no: number;
+  title: string;
+  section_id: number;
+  section_name: string;
+  term: string;
+};
+
+// ใหม่: เอกสารจากตาราง trainpdf
+type TrainPdf = { id_file: number; filename: string; created_at: string };
+
+type ChoiceType = "text" | "image";
+type Choice = { text: string; file: File | null };
+
+const LETTERS = ["a", "b", "c", "d"]; // ตารางมีตัวเลือกได้ 4 ข้อ (choice_a ถึง choice_d)
+const field =
+  "w-full rounded-lg border border-[#D5D9E6] bg-white px-3 py-2 text-sm text-[#14213F] outline-none placeholder:text-[#C3C6D6] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20";
+const heading = "mb-3 text-xl font-bold text-[#14213F]";
+const emptyChoice = (): Choice => ({ text: "", file: null });
+
+// ตรวจไฟล์รูป คืนข้อความ error หรือ "" ถ้าผ่าน
+function checkImage(f: File): string {
+  if (!/\.(png|jpe?g)$/i.test(f.name)) return "รองรับเฉพาะไฟล์ .png .jpg .jpeg";
+  if (f.size > 50 * 1024 * 1024) return "ไฟล์ใหญ่เกิน 50MB";
+  return "";
+}
+
+// ใหม่: ตัดรหัสสุ่ม 8 ตัวหน้าชื่อไฟล์ (เช่น "a1b2c3d4_ชื่อ.pdf" → "ชื่อ.pdf")
+const showName = (filename: string) => filename.replace(/^[0-9a-f]{8}_/, "");
+
+export default function AddQuizPage() {
+  const router = useRouter();
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const [chapters, setChapters] = useState<ChapterOpt[]>([]);
+  const [term, setTerm] = useState("");
+  const [sectionId, setSectionId] = useState("");
+  const [chapterId, setChapterId] = useState("");
+  const [question, setQuestion] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [choiceType, setChoiceType] = useState<ChoiceType>("text");
+  const [choices, setChoices] = useState<Choice[]>([emptyChoice(), emptyChoice()]);
+  const [correct, setCorrect] = useState<number | null>(null); // index ของข้อที่ถูก
+  const [explainRight, setExplainRight] = useState("");
+  const [explainWrong, setExplainWrong] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // ใหม่: เอกสารประกอบ (trainpdf) และไฟล์ที่ติ๊กเลือก
+  const [pdfs, setPdfs] = useState<TrainPdf[]>([]);
+  const [selectedPdfs, setSelectedPdfs] = useState<number[]>([]);
+  const [aiError, setAiError] = useState("");
+
+  // รายการบททั้งหมดพร้อมเทอมและภาค (ใช้กรองทีละช่อง)
+  useEffect(() => {
+    async function loadChapters() {
+      try {
+        const res = await fetch(`${API}/admin/chapters`);
+        const json = await res.json();
+        if (!json.success) {
+          setError(json.error || "โหลดรายการบทไม่สำเร็จ");
+          return;
+        }
+        setChapters(json.data ?? []);
+      } catch {
+        setError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+      }
+    }
+    loadChapters();
+  }, []);
+
+  // ใหม่: โหลดรายการเอกสารจาก trainpdf
+  useEffect(() => {
+    async function loadPdfs() {
+      try {
+        const res = await fetch(`${API}/admin/train-pdfs`);
+        const json = await res.json();
+        if (json.success) setPdfs(json.data ?? []);
+        else setAiError(json.error || "โหลดรายการเอกสารไม่สำเร็จ");
+      } catch {
+        setAiError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+      }
+    }
+    loadPdfs();
+  }, []);
+
+  // เทอมที่มีในข้อมูล (ไม่ซ้ำ)
+  const terms = Array.from(new Set(chapters.map((c) => c.term)));
+  // ภาคของเทอมที่เลือก (ไม่ซ้ำ)
+  const sections = Array.from(
+    new Map(
+      chapters.filter((c) => c.term === term).map((c) => [c.section_id, c.section_name])
+    ).entries()
+  );
+  // บทของภาคที่เลือก
+  const chapterOptions = chapters.filter((c) => String(c.section_id) === sectionId);
+
+  // สลับชนิดตัวเลือก (ข้อความ/รูป) ล้างคำตอบที่ถูกเพราะข้อมูลคนละแบบ
+  const switchType = (t: ChoiceType) => {
+    if (t === choiceType) return;
+    setChoiceType(t);
+    setChoices([emptyChoice(), emptyChoice()]);
+    setCorrect(null);
+    setError("");
+  };
+
+  const setChoiceText = (i: number, text: string) =>
+    setChoices(choices.map((c, idx) => (idx === i ? { ...c, text } : c)));
+
+  const setChoiceFile = (i: number, f: File | undefined) => {
+    if (!f) return;
+    const msg = checkImage(f);
+    if (msg) return setError(msg);
+    setError("");
+    setChoices(choices.map((c, idx) => (idx === i ? { ...c, file: f } : c)));
+  };
+
+  const addChoice = () => {
+    if (choices.length < LETTERS.length) setChoices([...choices, emptyChoice()]);
+  };
+
+  const removeChoice = (i: number) => {
+    if (choices.length <= 2) return;
+    setChoices(choices.filter((_, idx) => idx !== i));
+    if (correct === i) setCorrect(null);
+    else if (correct !== null && correct > i) setCorrect(correct - 1);
+  };
+
+  const pickImage = (f: File | undefined) => {
+    if (!f) return;
+    const msg = checkImage(f);
+    if (msg) return setError(msg);
+    setError("");
+    setImage(f);
+  };
+
+  // ใหม่: ติ๊ก/เอาติ๊กออกจากเอกสาร
+  const togglePdf = (id: number) => {
+    setAiError("");
+    setSelectedPdfs(
+      selectedPdfs.includes(id) ? selectedPdfs.filter((x) => x !== id) : [...selectedPdfs, id]
+    );
+  };
+
+  // ใหม่: ไปหน้าสร้างโจทย์ด้วย AI พร้อมรหัสไฟล์ที่เลือก
+  function goAi() {
+    if (!chapterId) {
+      setError("กรุณาเลือกบทก่อน");
+      return;
+    }
+    if (selectedPdfs.length === 0) {
+      setError("กรุณาติ๊กเอกสารประกอบอย่างน้อย 1 ไฟล์");
+      return;
+    }
+    router.push(
+      `/DashboardTeacherLead/ManageQuiz/Addquiz/AddquizAI?files=${selectedPdfs.join(",")}&chapterId=${chapterId}&type=${choiceType}`
+    );
+  }
+
+  async function handleSave() {
+    const isImage = choiceType === "image";
+    const filled = choices.map((c) => (isImage ? !!c.file : !!c.text.trim()));
+    if (!chapterId) return setError("กรุณาเลือกเทอม ภาค และบท");
+    if (!question.trim()) return setError("กรุณากรอกโจทย์");
+    if (filled.filter(Boolean).length < 2)
+      return setError(isImage ? "ต้องมีรูปตัวเลือกอย่างน้อย 2 ข้อ" : "ต้องมีตัวเลือกอย่างน้อย 2 ข้อ");
+    if (correct === null || !filled[correct])
+      return setError("กรุณากดเครื่องหมายถูกที่ข้อที่เป็นคำตอบ");
+
+    const fd = new FormData();
+    fd.append("chapter_id", chapterId);
+    fd.append("question", question.trim());
+    fd.append("choice_type", choiceType);
+    choices.forEach((c, i) => {
+      const l = LETTERS[i];
+      if (isImage) {
+        if (c.file) fd.append(`choice_image_${l}`, c.file);
+      } else {
+        fd.append(`choice_${l}`, c.text.trim());
+      }
+    });
+    fd.append("correct_choice", LETTERS[correct]);
+    fd.append("explanation", explainRight.trim());
+    fd.append("explanation_wrong", explainWrong.trim());
+    if (image) fd.append("image", image);
+
+    setSaving(true);
+    setError("");
+    try {
+      // ไม่ต้องตั้ง Content-Type เอง เบราว์เซอร์ใส่ boundary ของ FormData ให้
+      const res = await fetch(`${API}/admin/quiz-questions`, { method: "POST", body: fd });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error || json.detail?.[0]?.msg || "บันทึกไม่สำเร็จ");
+        return;
+      }
+      router.push("/DashboardTeacherLead/ManageQuiz");
+    } catch {
+      setError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto flex max-w-[900px] flex-col gap-8 px-8 py-10">
+      {/* เทอม → ภาค → บท (เลือกเรียงตามลำดับ) */}
+      <section className="grid grid-cols-3 gap-4">
+        <div>
+          <h2 className={heading}>เทอม</h2>
+          <select
+            value={term}
+            onChange={(e) => {
+              setTerm(e.target.value);
+              setSectionId("");
+              setChapterId("");
+            }}
+            className={field}
+          >
+            <option value="">เลือกเทอม</option>
+            {terms.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <h2 className={heading}>ภาค</h2>
+          <select
+            value={sectionId}
+            disabled={!term}
+            onChange={(e) => {
+              setSectionId(e.target.value);
+              setChapterId("");
+            }}
+            className={`${field} disabled:bg-gray-100`}
+          >
+            <option value="">เลือกภาค</option>
+            {sections.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <h2 className={heading}>บท</h2>
+          <select
+            value={chapterId}
+            disabled={!sectionId}
+            onChange={(e) => setChapterId(e.target.value)}
+            className={`${field} disabled:bg-gray-100`}
+          >
+            <option value="">เลือกบท</option>
+            {chapterOptions.map((c) => (
+              <option key={c.id} value={c.id}>
+                บทที่ {c.chapter_no} {c.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
+      {/* โจทย์ข้อความ */}
+      <section>
+        <h2 className={heading}>โจทย์ที่เป็นข้อความ</h2>
+        <textarea
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          rows={4}
+          className={field}
+        />
+      </section>
+
+      {/* อัปโหลดรูปโจทย์ */}
+      <section
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          pickImage(e.dataTransfer.files[0]);
+        }}
+        className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-[#C3C6D6] px-6 py-10 text-center"
+      >
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#DDE3F5] text-[#0B3FA6]">
+          <CloudUpload size={22} />
+        </span>
+        <p className="font-bold text-[#14213F]">อัปโหลดรูปภาพโจทย์</p>
+        <p className="text-xs text-gray-500">Supported formats: .png , .jpeg Max file size: 50MB .</p>
+        {image && <p className="text-sm text-[#2563EB]">{image.name}</p>}
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".png,.jpg,.jpeg"
+          className="hidden"
+          onChange={(e) => pickImage(e.target.files?.[0])}
+        />
+        <button
+          type="button"
+          onClick={() => fileInput.current?.click()}
+          className="mt-1 flex cursor-pointer items-center gap-2 rounded-md bg-[#0B3FA6] px-5 py-1.5 text-xs font-bold text-white hover:bg-[#093283]"
+        >
+          <FolderOpen size={14} />
+          Browse Files
+        </button>
+      </section>
+
+      {/* รูปแบบตัวเลือก */}
+      <section>
+        <h2 className={heading}>รูปแบบตัวเลือก</h2>
+        <div className="flex flex-col gap-3 text-sm text-[#14213F]">
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#D5D9E6] px-3 py-2.5">
+            <input
+              type="radio"
+              name="choiceType"
+              checked={choiceType === "text"}
+              onChange={() => switchType("text")}
+              className="accent-[#2563EB]"
+            />
+            ข้อความ
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#D5D9E6] px-3 py-2.5">
+            <input
+              type="radio"
+              name="choiceType"
+              checked={choiceType === "image"}
+              onChange={() => switchType("image")}
+              className="accent-[#2563EB]"
+            />
+            รูปภาพ
+          </label>
+        </div>
+      </section>
+
+      {/* ใหม่: เอกสารประกอบ + ปุ่มสร้างโจทย์ด้วย AI */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-[#14213F]">เอกสารประกอบ</h2>
+          <button
+            type="button"
+            onClick={goAi}
+            className="flex cursor-pointer items-center gap-2 rounded-md bg-[#2563EB] px-4 py-1.5 text-sm font-bold text-white hover:bg-[#1D4ED8]"
+          >
+            เพิ่มโจทย์โดยใช้ Ai
+            <Plus size={14} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-3">
+          {pdfs.length === 0 && (
+            <p className="rounded-lg border border-[#D5D9E6] px-3 py-3 text-sm text-gray-500">
+              ยังไม่มีเอกสาร (อัปโหลดได้ที่หน้า เทรนด์ข้อมูลจากไฟล์)
+            </p>
+          )}
+          {pdfs.map((p) => (
+            <label
+              key={p.id_file}
+              className="flex cursor-pointer items-center gap-3 rounded-lg border border-[#D5D9E6] bg-white px-3 py-2.5 text-sm text-[#14213F]"
+            >
+              <input
+                type="checkbox"
+                checked={selectedPdfs.includes(p.id_file)}
+                onChange={() => togglePdf(p.id_file)}
+                className="h-5 w-5 cursor-pointer accent-green-500"
+              />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#FDECEC] text-[#E5484D]">
+                <FileText size={18} />
+              </span>
+              <span className="truncate">{showName(p.filename)}</span>
+            </label>
+          ))}
+        </div>
+        {aiError && <p className="mt-2 text-sm text-red-500">{aiError}</p>}
+      </section>
+
+      {/* ตัวเลือก */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-[#14213F]">ตัวเลือก</h2>
+          <button
+            type="button"
+            onClick={addChoice}
+            disabled={choices.length >= LETTERS.length}
+            className="flex cursor-pointer items-center gap-2 rounded-md bg-[#2563EB] px-4 py-1.5 text-sm font-bold text-white hover:bg-[#1D4ED8] disabled:opacity-50"
+          >
+            เพิ่มตัวเลือก
+            <Plus size={14} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-3 rounded-lg border-l-4 border-[#2563EB] bg-white p-4 shadow-sm">
+          {choices.map((c, i) => (
+            <div key={i} className="flex items-center gap-2">
+              {choiceType === "text" ? (
+                <input
+                  value={c.text}
+                  onChange={(e) => setChoiceText(i, e.target.value)}
+                  placeholder={`ตัวเลือกที่ ${i + 1}`}
+                  className={field}
+                />
+              ) : (
+                <label className={`${field} flex cursor-pointer items-center gap-2`}>
+                  <ImagePlus size={16} className="shrink-0 text-gray-400" />
+                  <span className={`truncate ${c.file ? "text-[#14213F]" : "text-[#C3C6D6]"}`}>
+                    {c.file ? c.file.name : `เลือกรูปตัวเลือกที่ ${i + 1}`}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    className="hidden"
+                    onChange={(e) => setChoiceFile(i, e.target.files?.[0])}
+                  />
+                </label>
+              )}
+              <button
+                type="button"
+                aria-label="ลบตัวเลือก"
+                onClick={() => removeChoice(i)}
+                className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md bg-[#2563EB] text-white hover:bg-[#1D4ED8]"
+              >
+                <X size={16} />
+              </button>
+              <button
+                type="button"
+                aria-label="ตั้งเป็นคำตอบที่ถูก"
+                onClick={() => setCorrect(i)}
+                className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border ${
+                  correct === i
+                    ? "border-green-500 bg-green-500 text-white"
+                    : "border-[#D5D9E6] bg-white text-gray-300 hover:text-green-500"
+                }`}
+              >
+                <Check size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* คำอธิบาย */}
+      <section>
+        <h2 className={heading}>คำอธิบายเมื่อตอบถูก</h2>
+        <textarea
+          value={explainRight}
+          onChange={(e) => setExplainRight(e.target.value)}
+          rows={3}
+          className={field}
+        />
+      </section>
+      <section>
+        <h2 className={heading}>คำอธิบายเมื่อตอบผิด</h2>
+        <textarea
+          value={explainWrong}
+          onChange={(e) => setExplainWrong(e.target.value)}
+          rows={3}
+          className={field}
+        />
+      </section>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => router.push("/DashboardTeacherLead/ManageQuiz")}
+          className="w-[140px] cursor-pointer rounded-lg bg-[#FF4D4F] py-2.5 text-sm font-bold text-white hover:opacity-90"
+        >
+          ยกเลิก
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="w-[140px] cursor-pointer rounded-lg bg-[#2563EB] py-2.5 text-sm font-bold text-white hover:bg-[#1D4ED8] disabled:opacity-60"
+        >
+          {saving ? "กำลังบันทึก..." : "บันทึก"}
+        </button>
+      </div>
+    </div>
+  );
+}

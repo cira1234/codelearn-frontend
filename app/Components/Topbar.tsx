@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { ChevronDown } from "lucide-react";
-import profile from "../image/Profile.png";
+
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const GROUP = "/Dashboardstudent/MyCourses/Group";
@@ -26,6 +26,7 @@ type SectionInfo = { classId: string; courseTitle: string; sectionName: string }
 
 export default function Topbar() {
   const [name, setName] = useState("Ford");
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [info, setInfo] = useState<SectionInfo | null>(null);
   const pathname = usePathname();
@@ -130,56 +131,65 @@ if (ci !== -1 && si === -1) {
   }, [pathname]);
 
   // อ่านชื่อจาก localStorage["user"] ที่เก็บไว้หลัง OTP ผ่าน
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("user");
-      if (raw) {
-        const user = JSON.parse(raw);
-        if (user?.name) setName(String(user.name).split(" ")[0]);
-      }
-    } catch {
-      // ถ้าอ่านไม่ได้ ใช้ชื่อเริ่มต้นต่อไป
+useEffect(() => {
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const user = JSON.parse(raw);
+      if (user?.name) setName(String(user.name).split(" ")[0]);
+      const pic = user?.picture ?? user?.photo ?? user?.avatar ?? user?.image;
+      if (pic) setAvatar(String(pic));
     }
-  }, []);
+  } catch {
+    // ถ้าอ่านไม่ได้ ใช้ค่าเริ่มต้นต่อไป
+  }
+}, []);
 
   return (
     <header className="flex h-[48px] shrink-0 items-center justify-between border-b border-[#DDE3F5] bg-[#F8F8FD] px-4">
-      <nav className="flex items-center gap-2 text-xs">
-        {crumbs.length > 1 &&
-          crumbs.map((c, i) => {
-            const last = i === crumbs.length - 1;
-            return (
-              <span key={`${c.href}-${i}`} className="flex items-center gap-2">
-                {i > 0 && <span className="text-gray-400">›</span>}
-                {last ? (
-                  <span className="text-[#2563EB]">{c.label}</span>
-                ) : (
-                  <Link
-                    href={c.href}
-                    className="font-semibold text-[#14213F] underline"
-                  >
-                    {c.label}
-                  </Link>
-                )}
-              </span>
-            );
-          })}
-      </nav>
+  <nav className="flex items-center gap-2 text-xs">
+    {crumbs.length > 1 &&
+      crumbs.map((c, i) => {
+        const last = i === crumbs.length - 1;
+        return (
+          <span key={`${c.href}-${i}`} className="flex items-center gap-2">
+            {i > 0 && <span className="text-gray-400">›</span>}
+            {last ? (
+              <span className="text-[#2563EB]">{c.label}</span>
+            ) : (
+              <Link
+                href={c.href}
+                className="font-semibold text-[#14213F] underline"
+              >
+                {c.label}
+              </Link>
+            )}
+          </span>
+        );
+      })}
+  </nav>
 
-      <button
-        type="button"
-        className="flex items-center gap-2 rounded-full border border-[#C3C6D6] bg-white py-1 pl-1 pr-3 text-sm font-medium text-[#14213F] transition hover:bg-gray-50"
-      >
-        <span className="relative h-7 w-7 overflow-hidden rounded-full">
-          <Image
-            src={profile}
-            alt="โปรไฟล์"
-            className="h-full w-full scale-[1.9] object-cover object-[50%_28%]"
-          />
-        </span>
-        {name}
-        <ChevronDown size={14} className="text-gray-500" />
-      </button>
-    </header>
+  <button
+    type="button"
+    className="flex items-center gap-2 rounded-full border border-[#C3C6D6] bg-white py-1 pl-1 pr-3 text-sm font-medium text-[#14213F] transition hover:bg-gray-50"
+  >
+    <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[#2563EB] text-xs font-bold text-white">
+      {avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatar}
+          alt="โปรไฟล์"
+          referrerPolicy="no-referrer"
+          onError={() => setAvatar(null)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        name.charAt(0).toUpperCase()
+      )}
+    </span>
+    {name}
+    <ChevronDown size={14} className="text-gray-500" />
+  </button>
+</header>
   );
 }

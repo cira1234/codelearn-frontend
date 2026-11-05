@@ -5,7 +5,7 @@ import GoogleSignInButton from "../Components/GoogleSignInButton";
 import { useRouter } from "next/navigation";
 import logo from "../image/logo.png";
 import Image from "next/image";
-import Login from "../image/login.png";
+import Login from "../image/loginbot.png";
 import Logologin from "../image/logologin.png";
 import { ArrowRight } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";

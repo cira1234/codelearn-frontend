@@ -23,6 +23,7 @@ type Lab = {
   namelab: string;
   lab_id?: number;
   id?: number;
+  detail?: string;
   [key: string]: unknown;
 };
 
@@ -177,7 +178,7 @@ function LabContent() {
     <div className="flex flex-col gap-4">
       {/* 1) โจทย์ */}
       <section className="rounded-lg border border-[#E3E6F0] bg-white p-5">
-        <h2 className="text-xl font-bold text-[#14213F]">{lab.namelab}</h2>
+        <h2 className="text-xl font-bold text-[#14213F]">{lab.detail}</h2>
         {description && (
           <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-700">
             {description}

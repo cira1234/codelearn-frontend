@@ -47,7 +47,7 @@ export default function UploadFilePage() {
   }
 
   async function submit() {
-    if (!chapterId) {
+    if (!term || !chapterId) {
       showMessage("กรุณาเลือกเทอมและบท", true);
       return;
     }
@@ -57,6 +57,7 @@ export default function UploadFilePage() {
     }
     const body = new FormData();
     body.append("chapter_id", chapterId);
+    body.append("term", term);
     body.append("video_url", videoUrl);
     body.append("file", file);
 
