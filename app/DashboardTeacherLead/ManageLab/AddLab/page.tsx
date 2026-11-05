@@ -27,6 +27,8 @@ export default function AddLabPage() {
   const [namelab, setNamelab] = useState("");
   const [detail, setDetail] = useState("");
   const [error, setError] = useState("");
+const [success, setSuccess] = useState("");
+const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch(`${API}/admin/terms`)
@@ -41,11 +43,16 @@ export default function AddLabPage() {
       });
   }, []);
 
-  async function submit() {
-    if (!namelab.trim() || !chapterId) {
-      setError("กรุณากรอกชื่อใบงานและเลือกบท");
-      return;
-    }
+async function submit() {
+  setError("");
+  setSuccess("");
+  if (!namelab.trim() || !chapterId) {
+    setError("กรุณากรอกชื่อใบงานและเลือกบท");
+    return;
+  }
+  const ch = chapters.find((c) => c.id === Number(chapterId));
+  setSaving(true);
+  try {
     const res = await fetch(`${API}/admin/labs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,16 +60,22 @@ export default function AddLabPage() {
         namelab: namelab.trim(),
         detail,
         chapter_id: Number(chapterId),
+        chapter_no: ch?.chapter_no,
       }),
     });
     const json = await res.json();
     if (json.success) {
-      router.push("/DashboardTeacherLead/ManageLab");
+      setSuccess("บันทึกใบงานสำเร็จ");
+      setTimeout(() => router.push("/DashboardTeacherLead/ManageLab"), 1200);
     } else {
       setError(json.error ?? "บันทึกไม่สำเร็จ");
     }
+  } catch {
+    setError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+  } finally {
+    setSaving(false);
   }
-
+}
   return (
     <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-8 pt-8 pb-12">
       <div className="flex justify-end">
@@ -103,7 +116,7 @@ export default function AddLabPage() {
         <option value="">เลือกบท</option>
         {chapters.map((c) => (
           <option key={c.id} value={c.id}>
-            {c.section_name} · บทที่ {c.chapter_no} {c.title}
+            {c.section_name} ·  {c.title}
           </option>
         ))}
       </select>

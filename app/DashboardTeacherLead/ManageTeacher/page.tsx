@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { FilePenLine, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // 👈 เพิ่ม import นี้
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type Teacher = {
@@ -14,7 +16,6 @@ type Teacher = {
   term_list: string | null;
 };
 
-// ตัวอักษรย่อ: ตัวแรกของชื่อ + ตัวแรกของนามสกุล
 function initials(name: string) {
   const w = name.trim().split(/\s+/);
   return ((w[0]?.[0] ?? "") + (w[1]?.[0] ?? "")).toUpperCase();
@@ -22,7 +23,6 @@ function initials(name: string) {
 
 function Avatar({ t }: { t: Teacher }) {
   if (t.picture) {
-    // eslint-disable-next-line @next/next/no-img-element
     return <img src={t.picture} alt="" className="h-7 w-7 rounded-full object-cover" />;
   }
   return (
@@ -33,29 +33,53 @@ function Avatar({ t }: { t: Teacher }) {
 }
 
 export default function TeachersPage() {
+  const router = useRouter(); // 👈 เรียกใช้ router
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch(`${API}/admin/teachers`, { credentials: "include" });
-        const json = await res.json();
-        if (!json.success) {
-          setError(json.error || json.detail || "โหลดข้อมูลไม่สำเร็จ");
-          return;
-        }
-        setTeachers(json.data ?? []);
-      } catch {
-        setError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
-      } finally {
-        setLoading(false);
+  async function loadData() {
+    try {
+      const res = await fetch(`${API}/admin/teachers`, { credentials: "include" });
+      const json = await res.json();
+      if (!json.success) {
+        setError(json.error || json.detail || "โหลดข้อมูลไม่สำเร็จ");
+        return;
       }
+      setTeachers(json.data ?? []);
+    } catch {
+      setError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    } finally {
+      setLoading(false);
     }
-    load();
+  }
+
+  useEffect(() => {
+    loadData();
   }, []);
+
+  // 👇 ฟังก์ชันลบข้อมูล
+  async function handleDelete(id: number, name: string) {
+    if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบบัญชีอาจารย์ "${name}" ?`)) return;
+    
+    try {
+      const res = await fetch(`${API}/admin/teachers/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        // ลบสำเร็จ ให้กรองเอาคนที่ลบออกจาก State ทันที (ไม่ต้องโหลดใหม่)
+        setTeachers((prev) => prev.filter((t) => t.id !== id));
+      } else {
+        alert(json.error || "ลบข้อมูลไม่สำเร็จ");
+      }
+    } catch {
+      alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
+  }
 
   const q = query.trim().toLowerCase();
   const shown = teachers.filter(
@@ -64,7 +88,6 @@ export default function TeachersPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* ปุ่มสร้างบัญชี ชิดขวาบน (ยังไม่มีหน้าสร้าง จึงยังไม่ลิงก์ไปไหน) */}
       <div className="flex justify-end">
         <Link
           href="/DashboardTeacherLead/ManageTeacher/AddTeacher"
@@ -76,7 +99,6 @@ export default function TeachersPage() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[#E3E6F0] bg-white shadow-sm">
-        {/* หัวตาราง + ช่องค้นหา */}
         <div className="flex items-center justify-between bg-[#F8F8FD] px-5 py-4">
           <h2 className="text-lg font-bold text-[#14213F]">รายชื่ออาจารย์รายวิชา</h2>
           <label className="flex items-center gap-2 rounded-md border border-[#D5D9E6] bg-white px-3 py-1.5 text-sm text-gray-500">
@@ -128,10 +150,22 @@ export default function TeachersPage() {
                     <td className="px-5 py-3 text-gray-400">-</td>
                     <td className="px-5 py-3">
                       <span className="flex items-center justify-center gap-3">
-                        <button type="button" aria-label="แก้ไข" className="text-[#2563EB] hover:opacity-70">
+                        {/* 👇 ปุ่มแก้ไข ส่ง id ไปหน้าถัดไป */}
+                        <button 
+                          type="button" 
+                          onClick={() => router.push(`/DashboardTeacherLead/ManageTeacher/EditTeacher?id=${t.id}`)}
+                          className="text-[#2563EB] hover:opacity-70 cursor-pointer" 
+                          title="แก้ไข"
+                        >
                           <FilePenLine size={18} />
                         </button>
-                        <button type="button" aria-label="ลบ" className="text-red-600 hover:opacity-70">
+                        {/* 👇 ปุ่มลบ เรียกฟังก์ชัน handleDelete */}
+                        <button 
+                          type="button" 
+                          onClick={() => handleDelete(t.id, t.name)}
+                          className="text-red-600 hover:opacity-70 cursor-pointer" 
+                          title="ลบ"
+                        >
                           <Trash2 size={18} />
                         </button>
                       </span>

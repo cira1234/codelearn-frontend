@@ -21,8 +21,8 @@ export default function AddGroupPage() {
     term: "",
     group_name: "",
     detail: "",
-    teacher: "",
-    assistant: "",
+    teacher_id: "",
+    assistant_id: "",
   });
 
   const set = (key: string, value: string) => setForm({ ...form, [key]: value });
@@ -41,14 +41,20 @@ export default function AddGroupPage() {
   }, []);
 
   async function submit() {
-    if (!form.term || !form.group_name || !form.teacher) {
+    if (!form.term || !form.group_name || !form.teacher_id) {
       setError("กรุณาเลือกเทอม กรอกชื่อกลุ่มเรียน และเลือกอาจารย์ผู้สอน");
       return;
     }
     const res = await fetch(`${API}/admin/insert-class-groups`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        term: form.term,
+        group_name: form.group_name,
+        detail: form.detail,
+        teacher_id: Number(form.teacher_id),
+        assistant_id: form.assistant_id ? Number(form.assistant_id) : null,
+      }),
     });
     const json = await res.json();
     if (json.success) {
@@ -86,20 +92,28 @@ export default function AddGroupPage() {
       />
 
       <h2 className={title}>อาจารย์ผู้สอน *</h2>
-      <select className={box} value={form.teacher} onChange={(e) => set("teacher", e.target.value)}>
+      <select
+        className={box}
+        value={form.teacher_id}
+        onChange={(e) => set("teacher_id", e.target.value)}
+      >
         <option value="">เลือก</option>
         {teachers.map((t) => (
-          <option key={t.user_id} value={t.name}>
+          <option key={t.user_id} value={t.user_id}>
             {t.name}
           </option>
         ))}
       </select>
 
       <h2 className={title}>ผู้ช่วยสอน</h2>
-      <select className={box} value={form.assistant} onChange={(e) => set("assistant", e.target.value)}>
+      <select
+        className={box}
+        value={form.assistant_id}
+        onChange={(e) => set("assistant_id", e.target.value)}
+      >
         <option value="">เลือก</option>
         {teachers.map((t) => (
-          <option key={t.user_id} value={t.name}>
+          <option key={t.user_id} value={t.user_id}>
             {t.name}
           </option>
         ))}

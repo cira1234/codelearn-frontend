@@ -17,7 +17,7 @@ const css = `
 .gridbg{background-color:#040a1c;background-image:linear-gradient(rgba(56,189,248,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.05) 1px,transparent 1px);background-size:44px 44px}
 .cut{clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,26px 100%,0 calc(100% - 26px))}
 .scan{position:relative}
-.scan::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 1px,transparent 1px 3px)}
+.scan::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.2) 0 1px,transparent 1px 3px)}
 .cut2{clip-path:polygon(26px 0,100% 0,100% calc(100% - 26px),calc(100% - 26px) 100%,0 100%,0 26px)}
 .glow{text-shadow:3px 3px 0 #facc15,-2px -1px 0 #22d3ee}
 .stroke{color:transparent;-webkit-text-stroke:1.5px rgba(34,211,238,.55)}
@@ -401,7 +401,7 @@ export default function Page() {
             <h2 className="fd text-3xl md:text-4xl">พร้อมเริ่มภารกิจแรกหรือยัง?</h2>
             <p className="mt-2 text-sm text-white/85">ไม่กี่นาทีก็พิมพ์ Hello, C! ได้แล้ว</p>
           </div>
-          <a href="#topics" className="cut group z-10 bg-[#06122e] px-8 py-4 text-sm font-bold shadow-lg transition duration-300 hover:-translate-y-1 hover:bg-white hover:text-[#06122e]">เริ่มเรียนบทแรก <span className="inline-block text-cyan-300 transition group-hover:translate-x-1.5">→</span></a>
+          <a href="/Login" className="cut group z-10 bg-[#06122e] px-8 py-4 text-sm font-bold shadow-lg transition duration-300 hover:-translate-y-1 hover:bg-white hover:text-[#06122e]">เริ่มเรียนบทแรก <span className="inline-block text-cyan-300 transition group-hover:translate-x-1.5">→</span></a>
         </div>
         <footer className="flex flex-col items-center justify-between gap-3 bg-[#040a1c] px-6 py-6 md:flex-row md:px-14">
           <div className="flex items-center gap-2"><span className="grid h-6 w-6 place-items-center rounded border border-cyan-300 text-xs font-bold">C</span><span className="fd text-sm not-italic">CODE<span className="text-cyan-300">LEARN</span></span></div>

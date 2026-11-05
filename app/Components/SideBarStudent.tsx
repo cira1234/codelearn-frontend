@@ -1,27 +1,159 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { GraduationCap, Code2, LineChart, Settings, LogOut } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  GraduationCap,
+  ChevronDown,
+  Code2,
+  FileQuestion,
+  LineChart,
+  Settings,
+  LogOut,
+} from "lucide-react";
 
-const menus = [
-  { href: "/Dashboardstudent/MyCourses", label: "รายวิชาของฉัน", icon: GraduationCap },
-  { href: "/Dashboardstudent/LabHistory", label: "ประวัติการส่ง Lab", icon: Code2 },
-  { href: "/Dashboardstudent/Scores", label: "สรุปคะแนน", icon: LineChart },
-  { href: "/Dashboardstudent/Settings", label: "Settings", icon: Settings },
-];
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE = "/Dashboardstudent";
+const GROUP = `${BASE}/MyCourses/Group`;
+
+type LabItem = {
+  namelab: string;
+  id_lab?: number;
+  lab_id?: number;
+  id?: number;
+};
+
+const bottomMenus = [
+  // { href: `${BASE}/LabHistory`, label: "ประวัติการส่ง Lab", icon: Code2 },
+  // { href: `${BASE}/Scores`, label: "สรุปคะแนน", icon: LineChart },
+  // { href: `${BASE}/Settings`, label: "Settings", icon: Settings },
+] as { href: string; label: string; icon: React.ComponentType<{ size?: number }> }[];
+
+function GroupHeader({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 rounded-md border border-[#E3E6F0] bg-white px-3 py-1.5 text-sm text-gray-800">
+      <Icon size={18} />
+      {label}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(true);
+  const [labs, setLabs] = useState<LabItem[]>([]);
+  const [labsLoaded, setLabsLoaded] = useState(false);
+
+  const chapterId = searchParams.get("chapterId");
+  const q = chapterId ? `?chapterId=${chapterId}` : "";
+  const currentLab = searchParams.get("lab");
+
+  const slideActive = pathname.startsWith(`${BASE}/DashboardLab/Slide`);
+  const quizActive = pathname.startsWith(`${BASE}/DashboardLab/Quiz`);
+  const inCourse = pathname.startsWith(`${BASE}/MyCourses`);
+
+  useEffect(() => {
+    if (!chapterId) {
+      setLabs([]);
+      return;
+    }
+    let cancelled = false;
+    setLabsLoaded(false);
+    fetch(`${API}/chapters/${chapterId}/labs`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success) setLabs(json.labs ?? []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLabsLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterId]);
+
+  const itemClass = (active: boolean) =>
+    `block rounded-md px-3 py-2 text-sm transition ${
+      active ? "font-semibold text-[#2563EB]" : "text-gray-700 hover:bg-[#F1F3FD]"
+    }`;
 
   return (
-    <aside className="flex h-screen w-[260px] shrink-0 flex-col border-r border-[#DDE3F5] bg-[#F1F3FD] p-3">
+    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col overflow-y-auto border-r border-[#E3E6F0] bg-[#F7F8FE] p-3">
       <div className="px-2 py-4">
         <div className="text-xl font-bold text-[#0B3FA6]">CodeLearn</div>
         <div className="text-xs text-gray-600">AI Programming Tutor</div>
       </div>
 
+      {/* รายวิชาของฉัน: กดไปหน้ารายวิชา และพับ/ขยายการ์ดด้านล่างได้ */}
+      <div
+        className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium ${
+          inCourse || chapterId ? "bg-[#2563EB] text-white" : "text-gray-700 hover:bg-[#E1E6FA]"
+        }`}
+      >
+        <Link href={GROUP} className="flex flex-1 items-center gap-2">
+          <GraduationCap size={18} />
+          รายวิชาของฉัน
+        </Link>
+        {chapterId && (
+          <button type="button" onClick={() => setOpen((v) => !v)} aria-label="พับ/ขยาย">
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+        )}
+      </div>
+
+      {/* การ์ด เนื้อหา / Lab / Quiz แสดงเมื่ออยู่ในบทเรียน */}
+      {open && chapterId && (
+        <div className="mt-2 flex flex-col gap-3 rounded-2xl border border-[#E3E6F0] bg-white p-3 shadow-sm">
+          <div className="flex flex-col gap-1">
+            <GroupHeader icon={GraduationCap} label="เนื้อหา" />
+            <Link href={`${BASE}/DashboardLab/Slide${q}`} className={itemClass(slideActive)}>
+              สไลด์
+            </Link>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <GroupHeader icon={Code2} label="Lab" />
+            {labsLoaded && labs.length === 0 && (
+              <p className="px-3 py-2 text-sm text-gray-400">ยังไม่มี Lab</p>
+            )}
+            {labs.map((lab, i) => {
+              const key = String(lab.id_lab ?? lab.lab_id ?? lab.id ?? i + 1);
+              return (
+                <Link
+                  key={key}
+                  href={`${BASE}/DashboardLab/Lab${q}${q ? "&" : "?"}lab=${key}`}
+                  className={itemClass(currentLab === key)}
+                >
+                  {lab.namelab}
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <GroupHeader icon={FileQuestion} label="Quiz หลังเรียน" />
+            <Link href={`${BASE}/DashboardLab/Quiz${q}`} className={itemClass(quizActive)}>
+              แบบทดสอบหลังเรียน
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* เมนูล่าง */}
       <nav className="mt-4 flex flex-col gap-1">
-        {menus.map(({ href, label, icon: Icon }) => {
+        {bottomMenus.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link

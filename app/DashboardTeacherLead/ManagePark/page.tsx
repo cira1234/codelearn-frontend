@@ -120,9 +120,9 @@ export default function ManageTermPage() {
                     <td className="px-5 py-4">{r.group_count}</td>
                     <td className="px-5 py-4">
                       <span className="flex items-center gap-3">
-                        <button type="button" aria-label="ดู" className="cursor-pointer text-gray-600 hover:opacity-70">
+                        {/* <button type="button" aria-label="ดู" className="cursor-pointer text-gray-600 hover:opacity-70">
                           <Eye size={18} />
-                        </button>
+                        </button> */}
                         <button type="button" aria-label="แก้ไข" className="cursor-pointer text-[#2563EB] hover:opacity-70">
                           <FilePenLine size={18} />
                         </button>

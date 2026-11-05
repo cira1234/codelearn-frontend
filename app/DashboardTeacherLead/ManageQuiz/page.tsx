@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, FilePenLine, Filter, Plus, Trash2 } from "lucide-react";
+import { FilePenLine, Filter, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // 👈 เพิ่ม
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type Question = {
@@ -15,11 +17,11 @@ type Question = {
   term: string | null;
 };
 
-// ชื่อบท: "บทที่ 1 ชื่อบท" ถ้าไม่เจอในตาราง chapters ใช้เลข chapter_id แทน
 const chapterLabel = (q: Question) =>
   q.chapter_no != null ? `บทที่ ${q.chapter_no} ${q.chapter_title ?? ""}` : `บท (id ${q.chapter_id})`;
 
 export default function ManageQuizPage() {
+  const router = useRouter(); // 👈 เรียกใช้ router
   const [questions, setQuestions] = useState<Question[]>([]);
   const [chapter, setChapter] = useState("");
   const [error, setError] = useState("");
@@ -41,7 +43,24 @@ export default function ManageQuizPage() {
     load();
   }, []);
 
-  // รายการบทที่มีคำถาม (ไม่ซ้ำ) ใช้ทำตัวกรอง
+  // 👇 ฟังก์ชันลบ
+  async function handleDelete(id: number) {
+    if (!confirm("คุณแน่ใจหรือไม่ที่จะลบโจทย์ข้อนี้?")) return;
+
+    try {
+      const res = await fetch(`${API}/admin/quiz-questions/${id}`, { method: "DELETE" });
+      const json = await res.json();
+
+      if (json.success) {
+        setQuestions((prev) => prev.filter((q) => q.question_id !== id));
+      } else {
+        alert(json.error || "ลบข้อมูลไม่สำเร็จ");
+      }
+    } catch {
+      alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
+  }
+
   const chapters = Array.from(
     new Map(questions.map((q) => [q.chapter_id, chapterLabel(q)])).entries()
   );
@@ -111,13 +130,22 @@ export default function ManageQuizPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span className="flex items-center gap-3">
-                        <button type="button" aria-label="ดู" className="cursor-pointer text-gray-600 hover:opacity-70">
-                          <Eye size={18} />
-                        </button>
-                        <button type="button" aria-label="แก้ไข" className="cursor-pointer text-[#2563EB] hover:opacity-70">
+                        {/* 👇 ปุ่มแก้ไข */}
+                        <button 
+                          type="button" 
+                          onClick={() => router.push(`/DashboardTeacherLead/ManageQuiz/EditQuiz?id=${q.question_id}`)}
+                          className="cursor-pointer text-[#2563EB] hover:opacity-70"
+                          title="แก้ไข"
+                        >
                           <FilePenLine size={18} />
                         </button>
-                        <button type="button" aria-label="ลบ" className="cursor-pointer text-red-600 hover:opacity-70">
+                        {/* 👇 ปุ่มลบ */}
+                        <button 
+                          type="button" 
+                          onClick={() => handleDelete(q.question_id)}
+                          className="cursor-pointer text-red-600 hover:opacity-70"
+                          title="ลบ"
+                        >
                           <Trash2 size={18} />
                         </button>
                       </span>

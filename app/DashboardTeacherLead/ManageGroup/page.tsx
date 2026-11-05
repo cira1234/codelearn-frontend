@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, FilePenLine, Filter, Plus, Trash2 } from "lucide-react";
+import { FilePenLine, Filter, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // 👈 เพิ่ม import
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type Group = {
@@ -13,13 +15,13 @@ type Group = {
   assistant: string | null;
 };
 
-// ตัวอักษรย่อ: ตัวแรกของชื่อ + ตัวแรกของนามสกุล
 function initials(name: string) {
   const w = name.trim().split(/\s+/);
   return ((w[0]?.[0] ?? "") + (w[1]?.[0] ?? "")).toUpperCase();
 }
 
 export default function ManageGroupPage() {
+  const router = useRouter(); // 👈 เรียกใช้ router
   const [groups, setGroups] = useState<Group[]>([]);
   const [term, setTerm] = useState("");
   const [error, setError] = useState("");
@@ -41,14 +43,33 @@ export default function ManageGroupPage() {
     load();
   }, []);
 
-  // รายการเทอมที่มีในข้อมูล (ไม่ซ้ำ) ใช้ทำตัวกรอง
+  // 👇 ฟังก์ชันลบกลุ่มเรียน
+  async function handleDelete(id: number, name: string) {
+    if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบกลุ่มเรียน "${name}" ?`)) return;
+
+    try {
+      const res = await fetch(`${API}/admin/class-groups/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        // ลบสำเร็จ อัปเดต State ตัดแถวนั้นออกทันที
+        setGroups((prev) => prev.filter((g) => g.id !== id));
+      } else {
+        alert(json.error || "ลบข้อมูลไม่สำเร็จ");
+      }
+    } catch {
+      alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
+  }
+
   const terms = Array.from(new Set(groups.map((g) => g.term)));
   const shown = term ? groups.filter((g) => g.term === term) : groups;
 
   return (
     <div className="p-6">
       <div className="overflow-hidden rounded-xl border border-[#E3E6F0] bg-white shadow-sm">
-        {/* หัวตาราง: ชื่อ + ตัวกรองเทอม + ปุ่มเพิ่ม */}
         <div className="flex items-center justify-between bg-[#F8F8FD] px-5 py-4">
           <h2 className="text-lg font-bold text-[#14213F]">รายการกลุ่มเรียน</h2>
           <div className="flex items-center gap-3">
@@ -67,13 +88,13 @@ export default function ManageGroupPage() {
                 ))}
               </select>
             </label>
-                 <Link
-                href="/DashboardTeacherLead/ManageGroup/Addgroup"
-                className="flex items-center gap-2 rounded-lg bg-[#0B3FA6] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#093283] active:scale-[0.98]"
-                >
-                เพิ่มกลุ่มเรียน
-                <Plus size={16} />
-                </Link>
+            <Link
+              href="/DashboardTeacherLead/ManageGroup/Addgroup"
+              className="flex items-center gap-2 rounded-lg bg-[#0B3FA6] px-6 py-2.5 text-sm font-bold text-white transition hover:bg-[#093283] active:scale-[0.98]"
+            >
+              เพิ่มกลุ่มเรียน
+              <Plus size={16} />
+            </Link>
           </div>
         </div>
 
@@ -115,13 +136,22 @@ export default function ManageGroupPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span className="flex items-center gap-3">
-                        <button type="button" aria-label="ดู" className="text-gray-600 hover:opacity-70">
-                          <Eye size={18} />
-                        </button>
-                        <button type="button" aria-label="แก้ไข" className="text-[#2563EB] hover:opacity-70">
+                        {/* 👇 ปุ่มแก้ไข */}
+                        <button 
+                          type="button" 
+                          onClick={() => router.push(`/DashboardTeacherLead/ManageGroup/EditGroup?id=${g.id}`)}
+                          className="text-[#2563EB] hover:opacity-70 cursor-pointer" 
+                          title="แก้ไข"
+                        >
                           <FilePenLine size={18} />
                         </button>
-                        <button type="button" aria-label="ลบ" className="text-red-600 hover:opacity-70">
+                        {/* 👇 ปุ่มลบ */}
+                        <button 
+                          type="button" 
+                          onClick={() => handleDelete(g.id, g.group_name)}
+                          className="text-red-600 hover:opacity-70 cursor-pointer" 
+                          title="ลบ"
+                        >
                           <Trash2 size={18} />
                         </button>
                       </span>

@@ -102,7 +102,7 @@ function ChapterList() {
               <h2 className="mb-4 flex items-center gap-3 text-lg font-bold text-[#14213F]">
                 <BookOpen size={22} className="shrink-0 text-[#0B3FA6]" />
                 <span>
-                  บทที่ {c.chapter_no} {c.title}
+                 {c.title}
                 </span>
               </h2>
               <div className="flex flex-col gap-3">

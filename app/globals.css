@@ -92,7 +92,8 @@ body {
 
 
 
-html{scroll-behavior:smooth}body{margin:0;background:#040a1c}
+html { scroll-behavior: smooth; }
+body { margin: 0; }
 .hero-start {
   position: absolute;
   left: var(--start-x);

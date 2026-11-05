@@ -18,14 +18,16 @@ const BASE = "/Dashboardstudent";
 
 type LabItem = {
   namelab: string;
+  id_lab?: number;
   lab_id?: number;
   id?: number;
 };
 
+// เมนูล่าง: ประวัติการส่ง Lab / สรุปคะแนน / Settings
 const bottomMenus = [
-  { href: `${BASE}/LabHistory`, label: "ประวัติการส่ง Lab", icon: Code2 },
-  { href: `${BASE}/Scores`, label: "สรุปคะแนน", icon: LineChart },
-  { href: `${BASE}/Settings`, label: "Settings", icon: Settings },
+  { href: `${BASE}/DashboardLab/LabHistory`, label: "ประวัติการส่ง Lab", icon: Code2 },
+  { href: `${BASE}/DashboardLab/Scores`, label: "สรุปคะแนน", icon: LineChart },
+  // { href: `${BASE}/DashboardLab/Settings`, label: "Settings", icon: Settings },
 ];
 
 function GroupHeader({
@@ -50,7 +52,15 @@ export default function SidebarLab() {
   const [labs, setLabs] = useState<LabItem[]>([]);
   const [labsLoaded, setLabsLoaded] = useState(false);
 
-  const chapterId = searchParams.get("chapterId");
+  const urlChapterId = searchParams.get("chapterId");
+  const [storedId, setStoredId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (urlChapterId) sessionStorage.setItem("chapterId", urlChapterId);
+    else setStoredId(sessionStorage.getItem("chapterId"));
+  }, [urlChapterId]);
+
+  const chapterId = urlChapterId ?? storedId;
   const q = chapterId ? `?chapterId=${chapterId}` : "";
   const currentLab = searchParams.get("lab");
 
@@ -126,7 +136,7 @@ export default function SidebarLab() {
               <p className="px-3 py-2 text-sm text-gray-400">ยังไม่มี Lab</p>
             )}
             {labs.map((lab, i) => {
-              const key = String(lab.lab_id ?? lab.id ?? i + 1);
+              const key = String(lab.id_lab ?? lab.lab_id ?? lab.id ?? i + 1);
               return (
                 <Link
                   key={key}
@@ -151,14 +161,14 @@ export default function SidebarLab() {
         </div>
       )}
 
-      {/* เมนูล่าง */}
+      {/* เมนูล่าง: ประวัติการส่ง Lab / สรุปคะแนน / Settings */}
       <nav className="mt-4 flex flex-col gap-1">
         {bottomMenus.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
-              href={href}
+              href={`${href}${q}`}
               className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
                 active
                   ? "bg-[#E1E6FA] font-semibold text-[#0B3FA6]"

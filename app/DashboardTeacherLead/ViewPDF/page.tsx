@@ -139,7 +139,7 @@ export default function DocumentsPage() {
           <td className="px-5 py-4">{fmtDate(d.created_at)}</td>
           <td className="px-5 py-4">
             <span className="flex items-center gap-3">
-              <a
+              {/* <a
                 href={`${API}${d.url}`}
                 target="_blank"
                 rel="noreferrer"
@@ -147,7 +147,7 @@ export default function DocumentsPage() {
                 className="text-gray-600 hover:opacity-70"
               >
                 <Eye size={18} />
-              </a>
+              </a> */}
               <button type="button" aria-label="แก้ไข" className="cursor-pointer text-[#2563EB] hover:opacity-70">
                 <FilePenLine size={18} />
               </button>
